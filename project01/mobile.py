@@ -73,8 +73,8 @@ def page_channel(name, base_station_ip):
 
 
 def recv_call(name, base_station_ip):
-    traffic_socket = socket(AF_INET, SOCK_DGRAM)
-    traffic_socket.connect((base_station_ip, 2166))
+    traffic_socket = socket(AF_INET, SOCK_STREAM)
+    traffic_socket.connect((base_station_ip, 2166))``
 
     ringing = 'RINGING '+name
     traffic_socket.sendall(ringing.encode('utf-8'))
