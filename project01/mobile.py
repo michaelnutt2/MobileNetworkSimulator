@@ -157,9 +157,10 @@ def main():
 
         option, target_msn = menu(name)
 
-        if option == '1':
+        print 
+        if option == 1:
             start_call(base_station_ip, target_msn)
-        elif option == '2':
+        elif option == 2:
             page_channel(name, base_station_ip)
 
     except KeyboardInterrupt:
