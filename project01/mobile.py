@@ -65,8 +65,6 @@ def page_channel(name, base_station_ip):
 
     msg = page_msg[0].decode('utf-8')
 
-    print(msg + ' ' + setup)
-
     if msg == setup:
         page_socket.close()
         print(msg)

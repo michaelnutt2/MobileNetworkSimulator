@@ -35,18 +35,15 @@ def page(close_server_event, page_queue):
     Arguments:
     page_queue -- the queue the pager will be reading from
     """
-    print('inside page')
     # Socket setup for broadcast channel
     page_socket = socket(AF_INET, SOCK_DGRAM)
     page_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
     
     while True:
-        print('Inside page while')
         page_obj = page_queue.get()
-        print('after page queue get')
         if page_obj is _shutdown:
             break
-        print('after page if')
+        print(page_obj)
         page_socket.sendto(page_obj, ('<broadcast>', 2077))
 
 
@@ -65,6 +62,7 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
     """
     # Sending initial OK confirmation for setup message
     ok_msg = 'OK'.encode('utf-8')
+    print('CALLER: '+str(ok_msg))
     mobile_socket.sendall(ok_msg)
 
     # Wait for receiver Ringing Response
@@ -73,18 +71,19 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
     # Ensure server not shutting down
     if ringing is _shutdown:
         return
-    print(ringing)
+    print('CALLER: '+str(ringing))
     mobile_socket.sendall(ringing)
 
     # Wait for Connected response
     connected = mobile_caller_queue.get()
     if ringing is _shutdown:
         return
-    print(connected)
+    print('CALLER: '+str(connected))
     mobile_socket.sendall(connected)
 
     # Wait for confirmation from Mobile on connected
     ok_msg = mobile_socket.recv(255)
+    print('CALLER: '+str(ok_msg))
     mobile_receiver_queue.put(ok_msg)
 
     mobile_socket.close()
@@ -105,14 +104,17 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
     """
     # send initial ok confirmation on ringing message
     ok_msg = 'OK'.encode('utf-8')
+    print('RECEIVER: '+str(ok_msg))
     mobile_socket.sendall(ok_msg)
 
     # Wait for receiver connected message
     connected_msg = mobile_socket.recv(255)
+    print('RECEIVER: '+str(connected_msg))
     mobile_caller_queue.put(connected_msg)
 
     # Wait for caller OK message
     ok_msg = mobile_receiver_queue.get()
+    print('RECEIVER: '+str(ok_msg))
     mobile_socket.sendall(ok_msg)
 
     mobile_socket.close()
@@ -132,6 +134,7 @@ def call_handler(mobile_socket, mobile_caller_queue, mobile_receiver_queue, page
     msg = mobile_socket.recv(255)
     msg_decode = msg.decode('utf-8')
     
+    print('Inside call handler')
     if msg_decode[0:5] == 'SETUP':
         page_queue.put(msg)
         call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue)
