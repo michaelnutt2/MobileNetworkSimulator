@@ -49,12 +49,12 @@ def start_call(base_station_ip, target_msn):
 
 
 def page_channel(name, base_station_ip):
-    if name == 1:
+    if name == 2:
         setup = 'SETUP MS2'
-        source_name = 'MS2'
+        source_name = 'MS1'
     else:
         setup = 'SETUP MS1'
-        source_name = 'MS1'
+        source_name = 'MS2'
 
     print('Inside page channel thread')
 
@@ -65,8 +65,8 @@ def page_channel(name, base_station_ip):
 
     msg = page_msg[0].decode('utf-8')
 
-    print(msg)
-    
+    print(msg + ' ' + setup)
+
     if msg == setup:
         page_socket.close()
         print(msg)
