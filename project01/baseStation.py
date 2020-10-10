@@ -139,7 +139,7 @@ def call_handler(mobile_socket, mobile_caller_queue, mobile_receiver_queue, page
         page_queue.put(msg)
         call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue)
     else:
-        mobile_caller_queue.put(msg_decode)
+        mobile_caller_queue.put(msg)
         call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue)
 
 
