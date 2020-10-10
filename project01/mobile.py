@@ -49,7 +49,7 @@ def start_call(base_station_ip, target_msn):
 
 
 def page_channel(name, base_station_ip):
-    if name == 2:
+    if name == 'MS2':
         setup = 'SETUP MS2'
         source_name = 'MS1'
     else:
