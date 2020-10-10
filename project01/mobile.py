@@ -129,10 +129,17 @@ def menu(name):
     else:
         target_msn = 'MS1'
     
-    print("Select an option:")
-    print("1. Call "+target_msn)
+    ans = 99
 
-    ans = input()
+    while ans >= 3:
+        print("Select an option:")
+        print("1. Call "+target_msn)
+        print("2. Prepare to receive call")
+
+        ans = input()
+
+        if ans >= 3:
+            print("Invalid input")
 
     return ans, target_msn
 
@@ -148,13 +155,13 @@ def main():
 
         base_station_ip = pilot()
 
-        if name == 'MS1':
-            option, target_msn = menu(name)
+        option, target_msn = menu(name)
 
-            if option == '1':
-                start_call(base_station_ip, target_msn)
-        else:
+        if option == '1':
+            start_call(base_station_ip, target_msn)
+        elif option == '2':
             page_channel(name, base_station_ip)
+
     except KeyboardInterrupt:
         return
 
