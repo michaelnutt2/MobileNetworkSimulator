@@ -39,7 +39,6 @@ def page(close_server_event, page_queue):
     # Socket setup for broadcast channel
     page_socket = socket(AF_INET, SOCK_DGRAM)
     page_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-    page_socket.bind(('<broadcast>', 2077))
     
     while True:
         print('Inside page while')
@@ -48,7 +47,7 @@ def page(close_server_event, page_queue):
         if page_obj is _shutdown:
             break
         print('after page if')
-        page_socket.sendall(page_obj)
+        page_socket.sendto(page_obj, ('<broadcast>', 2077))
 
 
 def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
