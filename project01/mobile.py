@@ -136,7 +136,7 @@ def menu(name):
         print("1. Call "+target_msn)
         print("2. Prepare to receive call")
 
-        ans = input()
+        ans = int(input())
 
         if ans >= 3:
             print("Invalid input")
