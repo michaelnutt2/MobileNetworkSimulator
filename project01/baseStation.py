@@ -134,7 +134,7 @@ def call_handler(mobile_socket, mobile_caller_queue, mobile_receiver_queue, page
     msg = mobile_socket.recv(255)
     msg_decode = msg.decode('utf-8')
     
-    print('Inside call handler')
+    print('Inside call handler:' + str(msg))
     if msg_decode[0:5] == 'SETUP':
         page_queue.put(msg)
         call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue)
