@@ -22,7 +22,7 @@ def pilot(close_server_event):
         if close_server_event.is_set():
             break
         time.sleep(5)
-        print('Broadcasting BS Info')
+        # print('Broadcasting BS Info')
         pilot_socket.sendto(msg.encode('utf-8'), ('<broadcast>', 2055))
 
 
@@ -165,6 +165,7 @@ def main():
         
         # Start server to listen for incoming mobile calls
         while True:
+            print('Waiting for connection...')
             mobile_socket, address = server_socket.accept()
             mobile_thread = Thread(target=call_handler, args=(mobile_socket, mobile_caller_queue, mobile_receiver_queue, page_queue,))
             mobile_thread.start()
