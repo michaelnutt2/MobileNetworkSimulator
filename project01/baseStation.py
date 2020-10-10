@@ -22,7 +22,6 @@ def pilot(close_server_event):
         if close_server_event.is_set():
             break
         time.sleep(5)
-        # print('Broadcasting BS Info')
         pilot_socket.sendto(msg.encode('utf-8'), ('<broadcast>', 2055))
 
 
@@ -43,7 +42,6 @@ def page(close_server_event, page_queue):
         page_obj = page_queue.get()
         if page_obj is _shutdown:
             break
-        print(page_obj)
         page_socket.sendto(page_obj, ('<broadcast>', 2077))
 
 
@@ -134,7 +132,6 @@ def call_handler(mobile_socket, mobile_caller_queue, mobile_receiver_queue, page
     msg = mobile_socket.recv(255)
     msg_decode = msg.decode('utf-8')
     
-    print('Inside call handler:' + str(msg))
     if msg_decode[0:5] == 'SETUP':
         page_queue.put(msg)
         call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue)
@@ -166,12 +163,10 @@ def main():
         server_socket = socket(AF_INET, SOCK_STREAM)
         server_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         server_socket.bind(('', 2166))
-        print('Socket Bound')
         server_socket.listen(10)
         
         # Start server to listen for incoming mobile calls
         while True:
-            print('Waiting for connection...')
             mobile_socket, address = server_socket.accept()
             mobile_thread = Thread(target=call_handler, args=(mobile_socket, mobile_caller_queue, mobile_receiver_queue, page_queue,))
             mobile_thread_list.append(mobile_thread)

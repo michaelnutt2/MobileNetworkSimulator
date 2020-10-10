@@ -3,6 +3,11 @@ from threading import Thread, Event
 import argparse
 
 def pilot():
+    """ Runs on startup to receive Base Station information
+
+    Returns Base Station IP address, should take max 5 seconds
+    to receive information based on broadcast frequency
+    """
     msg = ''
     pilot_socket = socket(AF_INET, SOCK_DGRAM)
     pilot_socket.bind(('<broadcast>', 2055))
@@ -16,7 +21,16 @@ def pilot():
     
 
 def start_call(base_station_ip, target_msn):
-    print('About to call')
+    """Handles setting up call
+
+    Sends initial SETUP MSN message to broadcast station
+    simulator, then waits for replies following event flow
+    as seen in report
+
+    Arguments:
+    base_station_ip -- IP address detected through pilot function
+    target_msn -- Mobile Station Number of phone we are calling
+    """
     
     # Set up socket to initiate call
     traffic_socket = socket(AF_INET, SOCK_STREAM)
@@ -49,6 +63,16 @@ def start_call(base_station_ip, target_msn):
 
 
 def page_channel(name, base_station_ip):
+    """ Runs in background to receive calls from base station
+
+    Interrupts main process with call log updates as call comes in
+
+    Arguments:
+    name -- MSN of the current phone
+    base_station_ip -- IP address of the base station
+    """
+
+    # Creates setup message and source_name of the message received
     if name == 'MS2':
         setup = 'SETUP MS2'
         source_name = 'MS1'
@@ -56,8 +80,7 @@ def page_channel(name, base_station_ip):
         setup = 'SETUP MS1'
         source_name = 'MS2'
 
-    print('Inside page channel thread')
-
+    # Sets up broadcast receiver to receive page messages
     page_socket = socket(AF_INET, SOCK_DGRAM)
     page_socket.bind(('<broadcast>', 2077))
 
@@ -65,6 +88,8 @@ def page_channel(name, base_station_ip):
 
     msg = page_msg[0].decode('utf-8')
 
+    # Checks if the page message is intended for this phone
+    # discards if not
     if msg == setup:
         page_socket.close()
         print(msg)
@@ -73,6 +98,14 @@ def page_channel(name, base_station_ip):
 
 
 def recv_call(name, base_station_ip):
+    """ Called from the paging thread, handles receiving call from base station
+
+    Sends status messages RINGING and CONNECT after paged
+
+    Arguments:
+    name -- msn of the calling phone
+    base_station_ip -- IP address of the base station call is coming from
+    """
     traffic_socket = socket(AF_INET, SOCK_STREAM)
     traffic_socket.connect((base_station_ip, 2166))
 
@@ -89,6 +122,8 @@ def recv_call(name, base_station_ip):
 
 
 def menu(name):
+    """ Creates menu for phone simulator
+    """
     if name == 'MS1':
         target_msn = 'MS2'
     else:
