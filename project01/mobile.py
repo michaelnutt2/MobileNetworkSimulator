@@ -150,18 +150,20 @@ def menu(name):
 
     options = [
         '1. Call '+target_msn,
-        '2. Prepare to receive call'
+        '2. Prepare to receive call',
         '3. Quit'
     ]
 
-    while ans > len(options):
+    print(len(options))
+
+    while ans > len(options) or ans <= 0:
         print("Select an option:")
         for option in options:
             print(option)
 
         ans = int(input())
 
-        if ans > len(options):
+        if ans > len(options) or ans <= 0:
             print("Invalid input")
 
     return ans, target_msn

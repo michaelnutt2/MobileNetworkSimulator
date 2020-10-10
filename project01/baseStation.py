@@ -200,12 +200,18 @@ def main():
             mobile_thread.start()
 
     except KeyboardInterrupt:
+        print('Closing server')
+        print('Ending Pilot Thread')
         close_server_event.set()
+        print('Ending Pager Thread')
         page_queue.put(_shutdown)
+        print('Joining Pilot and Page Threads')
         pilot_thread.join()
         page_thread.join()
+        print('Joining mobile threads')
         for m_thread in mobile_thread_list:
             m_thread.join()
+        print('Good bye')
         return
 
 
