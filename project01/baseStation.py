@@ -161,6 +161,8 @@ def main():
         page_thread = Thread(target=page, args=(close_server_event, page_queue,))
         page_thread.start()
 
+        mobile_thread_list = []
+
         server_socket = socket(AF_INET, SOCK_STREAM)
         server_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         server_socket.bind(('', 2166))
@@ -172,6 +174,7 @@ def main():
             print('Waiting for connection...')
             mobile_socket, address = server_socket.accept()
             mobile_thread = Thread(target=call_handler, args=(mobile_socket, mobile_caller_queue, mobile_receiver_queue, page_queue,))
+            mobile_thread_list.append(mobile_thread)
             mobile_thread.start()
 
     except KeyboardInterrupt:
@@ -179,6 +182,8 @@ def main():
         page_queue.put(_shutdown)
         pilot_thread.join()
         page_thread.join()
+        for m_thread in mobile_thread_list:
+            m_thread.join()
         return
 
 
