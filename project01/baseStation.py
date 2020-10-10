@@ -84,6 +84,20 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
     print('CALLER: '+str(ok_msg))
     mobile_receiver_queue.put(ok_msg)
 
+
+    # Start call teardown, wait for Call End message from mobile
+    end_call_msg = mobile_socket.recv(255)
+
+    # Print status message, then place on queue for receiving call
+    print('CALLER: '+str(end_call_msg))
+    mobile_receiver_queue.put(end_call_msg)
+    
+    # Read message from receiver confirming call ended, send to mobile
+    call_ended_msg = mobile_caller_queue.get()
+    print('CALLER: ' +str(call_ended_msg))
+    mobile_socket.sendall(call_ended_msg)
+
+    # close connection
     mobile_socket.close()
 
 
@@ -115,6 +129,18 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
     print('RECEIVER: '+str(ok_msg))
     mobile_socket.sendall(ok_msg)
 
+    # Wait for call end message from caller
+    end_call_msg = mobile_receiver_queue.get()
+    print('RECEIVER: '+str(end_call_msg))
+    mobile_socket.sendall(end_call_msg)
+
+    # Wait for confirmation of call end from receiver
+    # place on caller queue
+    call_ended_msg = mobile_socket.recv(255)
+    print('RECEIVER: '+str(call_ended_msg))
+    mobile_caller_queue.put(call_ended_msg)
+
+    # Close connection
     mobile_socket.close()
 
 
@@ -160,6 +186,7 @@ def main():
 
         mobile_thread_list = []
 
+        # Set up server socket to manage mobile connections
         server_socket = socket(AF_INET, SOCK_STREAM)
         server_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         server_socket.bind(('', 2166))

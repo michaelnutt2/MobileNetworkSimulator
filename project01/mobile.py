@@ -15,7 +15,7 @@ def pilot():
         print('Searching for network...')
         pilot_msg = pilot_socket.recvfrom(255)
         msg = pilot_msg[0].decode('utf-8')
-    print('received IP '+pilot_msg[1][0])
+    print('Connected to network')
     pilot_socket.close()
     return pilot_msg[1][0]
     
@@ -42,8 +42,6 @@ def start_call(base_station_ip, target_msn):
     # send setup message
     traffic_socket.sendall(setup_msg_encoded)
 
-    print('Setup message sent')
-
     # Wait for confirmation response from server
     msg = traffic_socket.recv(255)
     print(msg)
@@ -59,7 +57,14 @@ def start_call(base_station_ip, target_msn):
     ok_msg = 'OK'
     traffic_socket.sendall(ok_msg.encode('utf-8'))
 
-    print('OK message sent')
+    # Start call teardown, send end call message
+    end_call_msg = 'END CALL'.encode('utf-8')
+    traffic_socket.sendall(end_call_msg)
+
+    # Wait for confirmation message from receiver
+    call_ended_msg = traffic_socket.recv(255)
+    print(call_ended_msg)
+
 
 
 def page_channel(name, base_station_ip):
@@ -93,7 +98,6 @@ def page_channel(name, base_station_ip):
     if msg == setup:
         page_socket.close()
         print(msg)
-        print('Inside page setup')
         recv_call(source_name, base_station_ip)
 
 
@@ -119,6 +123,16 @@ def recv_call(name, base_station_ip):
     connect_msg = 'CONNECT '+name
     traffic_socket.sendall(connect_msg.encode('utf-8'))
     print(connect_msg)
+
+    # Wait for end call message
+    end_call_msg = traffic_socket.recv(255)
+    print(end_call_msg)
+
+    # Send call end confirmation
+    call_end_msg = 'CALL ENDED'.encode('utf-8')
+    traffic_socket.sendall(call_end_msg)
+
+    print(call_end_msg)
 
 
 def menu(name):
