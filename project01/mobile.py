@@ -65,6 +65,7 @@ def start_call(base_station_ip, target_msn):
     call_ended_msg = traffic_socket.recv(255)
     print(call_ended_msg)
 
+    traffic_socket.close()
 
 
 def page_channel(name, base_station_ip):
@@ -134,6 +135,8 @@ def recv_call(name, base_station_ip):
 
     print(call_end_msg)
 
+    traffic_socket.close()
+
 
 def menu(name):
     """ Creates menu for phone simulator
@@ -145,14 +148,20 @@ def menu(name):
     
     ans = 99
 
-    while ans >= 3:
+    options = [
+        '1. Call '+target_msn,
+        '2. Prepare to receive call'
+        '3. Quit'
+    ]
+
+    while ans > len(options):
         print("Select an option:")
-        print("1. Call "+target_msn)
-        print("2. Prepare to receive call")
+        for option in options:
+            print(option)
 
         ans = int(input())
 
-        if ans >= 3:
+        if ans > len(options):
             print("Invalid input")
 
     return ans, target_msn
@@ -169,13 +178,15 @@ def main():
 
         base_station_ip = pilot()
 
-        option, target_msn = menu(name)
+        while True:
+            option, target_msn = menu(name)
 
-        print 
-        if option == 1:
-            start_call(base_station_ip, target_msn)
-        elif option == 2:
-            page_channel(name, base_station_ip)
+            if option == 1:
+                start_call(base_station_ip, target_msn)
+            elif option == 2:
+                page_channel(name, base_station_ip)
+            elif option == 3:
+                return
 
     except KeyboardInterrupt:
         return
