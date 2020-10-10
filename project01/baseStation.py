@@ -162,6 +162,7 @@ def main():
         page_thread.start()
 
         server_socket = socket(AF_INET, SOCK_STREAM)
+        server_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         server_socket.bind(('', 2166))
         print('Socket Bound')
         server_socket.listen(10)
