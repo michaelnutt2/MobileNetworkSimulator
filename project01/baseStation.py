@@ -41,9 +41,12 @@ def page(close_server_event, page_queue):
     page_socket.bind(('<broadcast>', 2077))
     
     while True:
+        print('Inside page while')
         page_obj = page_queue.get()
+        print('after page queue get')
         if page_obj is _shutdown:
             break
+        print('after page if')
         page_socket.sendall(page_obj)
 
 
