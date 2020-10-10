@@ -59,7 +59,7 @@ def page_channel(name, base_station_ip):
     print('Inside page channel thread')
 
     page_socket = socket(AF_INET, SOCK_DGRAM)
-    page_socket.bind('<broadcast>', 2077)
+    page_socket.bind(('<broadcast>', 2077))
 
     page_msg = page_socket.recvfrom(255)
 
