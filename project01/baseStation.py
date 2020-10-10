@@ -37,7 +37,8 @@ def page(close_server_event, page_queue):
     """
     print('inside page')
     # Socket setup for broadcast channel
-    page_socket = socket(AF_INET, SOCK_STREAM)
+    page_socket = socket(AF_INET, SOCK_DGRAM)
+    page_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
     page_socket.bind(('<broadcast>', 2077))
     
     while True:
