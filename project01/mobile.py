@@ -193,7 +193,8 @@ def menu(name):
 
     options = [
         '1. Call '+target_msn,
-        '2. Prepare to receive call'
+        '2. Prepare to receive call',
+        '3. Simulate Call Failed'
     ]
 
     while ans > len(options) or ans <= 0:
@@ -222,7 +223,8 @@ def main():
 
         menu_functions = {
             1: start_call,
-            2: recv_call
+            2: recv_call,
+            3: simulate_call_failed
         }
 
         menu_args = {
@@ -236,7 +238,6 @@ def main():
             # Read options from menu, call correct function and pass arguments
             option, target_msn = menu(name)
             menu_args["target_msn"] = target_msn
-            menu_args["sim_flag"] = option
             menu_functions[option](menu_args)
 
     except KeyboardInterrupt:
