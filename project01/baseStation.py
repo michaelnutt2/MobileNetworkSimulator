@@ -148,6 +148,10 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
 
         # Wait for receiver connected message
         connected_msg = mobile_socket.recv(255)
+        if not connected_msg:
+            mobile_socket.close()
+            return
+        
         print('RECEIVER: '+str(connected_msg))
         mobile_caller_queue.put(connected_msg)
 
@@ -171,6 +175,11 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
         # Wait for confirmation of call end from receiver
         # place on caller queue
         call_ended_msg = mobile_socket.recv(255)
+        if not call_ended_msg:
+            mobile_socket.close()
+            print('RECEIVER: CALL FAILED')
+            return
+
         print('RECEIVER: '+str(call_ended_msg))
         mobile_caller_queue.put(call_ended_msg)
 
