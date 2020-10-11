@@ -219,7 +219,7 @@ def main():
             option, target_msn = menu(name)
             menu_args["target_msn"] = target_msn
             menu_args["sim_flag"] = option
-            menu_functions[option](menu_args)
+            menu_functions[option-1](menu_args)
 
     except KeyboardInterrupt:
         return
