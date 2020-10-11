@@ -176,8 +176,6 @@ def menu(name):
         '2. Prepare to receive call'
     ]
 
-    print(len(options))
-
     while ans > len(options) or ans <= 0:
         print("Select an option:")
         for option in options:
@@ -203,8 +201,8 @@ def main():
         base_station_ip = pilot()
 
         menu_functions = {
-            "1": start_call,
-            "2": recv_call
+            1: start_call,
+            2: recv_call
         }
 
         menu_args = {
@@ -217,9 +215,10 @@ def main():
         while True:
             # Read options from menu, call correct function and pass arguments
             option, target_msn = menu(name)
+            option = option - 1
             menu_args["target_msn"] = target_msn
             menu_args["sim_flag"] = option
-            menu_functions[option-1](menu_args)
+            menu_functions[option](menu_args)
 
     except KeyboardInterrupt:
         return
