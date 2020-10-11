@@ -215,7 +215,6 @@ def main():
         while True:
             # Read options from menu, call correct function and pass arguments
             option, target_msn = menu(name)
-            option = option - 1
             menu_args["target_msn"] = target_msn
             menu_args["sim_flag"] = option
             menu_functions[option](menu_args)

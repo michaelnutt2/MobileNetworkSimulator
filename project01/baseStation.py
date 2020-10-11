@@ -1,6 +1,6 @@
 from socket import *
 from threading import Thread, Event
-from queue import Queue
+from queue import Queue, Empty
 import time
 import select
 
@@ -73,8 +73,8 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
 
     # Wait for receiver Ringing Response
     try:
-        ringing = mobile_caller_queue.get(timeout=3)
-    except Queue.Empty:
+        ringing = mobile_caller_queue.get(timeout=5)
+    except Empty:
         print('CALLER: No response from receiver, unreachable')
         call_error(mobile_socket, 'NUMBER UNREACHABLE'.encode('utf-8'))
         return
@@ -87,8 +87,8 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
 
     # Wait for Connected response
     try:
-        connected = mobile_caller_queue.get(timeout=3)
-    except Queue.Empty:
+        connected = mobile_caller_queue.get(timeout=5)
+    except Empty:
         print('CALLER: Call Failed')
         call_error(mobile_socket, 'CALL FAILED'.encode('utf-8'))
         return
@@ -113,8 +113,8 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
     
     # Read message from receiver confirming call ended, send to mobile
     try:
-        call_ended_msg = mobile_caller_queue.get(timeout=3)
-    except Queue.Empty:
+        call_ended_msg = mobile_caller_queue.get(timeout=5)
+    except Empty:
         call_error(mobile_socket, 'CALL ENDED')
         return
     
@@ -150,8 +150,8 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
 
     # Wait for caller OK message
     try:
-        ok_msg = mobile_receiver_queue.get(timeout=3)
-    except Queue.Empty:
+        ok_msg = mobile_receiver_queue.get(timeout=5)
+    except Empty:
         call_error(mobile_socket, 'CALL FAILED'.encode('utf-8'))
 
     print('RECEIVER: '+str(ok_msg))
@@ -159,8 +159,8 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
 
     # Wait for call end message from caller
     try:
-        end_call_msg = mobile_receiver_queue.get(timeout=3)
-    except Queue.Empty:
+        end_call_msg = mobile_receiver_queue.get(timeout=5)
+    except Empty:
         call_error(mobile_socket, 'CALL ENDED'.encode('utf-8'))
     print('RECEIVER: '+str(end_call_msg))
     mobile_socket.sendall(end_call_msg)
