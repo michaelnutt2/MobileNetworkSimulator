@@ -1,6 +1,7 @@
 from socket import *
 from threading import Thread, Event
 import argparse
+import select
 
 def pilot():
     """ Runs on startup to receive Base Station information
@@ -20,7 +21,7 @@ def pilot():
     return pilot_msg[1][0]
     
 
-def start_call(base_station_ip, target_msn):
+def start_call(args):
     """Handles setting up call
 
     Sends initial SETUP MSN message to broadcast station
@@ -28,10 +29,14 @@ def start_call(base_station_ip, target_msn):
     as seen in report
 
     Arguments:
-    base_station_ip -- IP address detected through pilot function
-    target_msn -- Mobile Station Number of phone we are calling
+    args -- dictionary that contains the following arguments:
+        base_station_ip -- IP address detected through pilot function
+        target_msn -- Mobile Station Number of phone we are calling
     """
     
+    base_station_ip = args["base_station_ip"]
+    target_msn = args["target_msn"]
+
     # Set up socket to initiate call
     traffic_socket = socket(AF_INET, SOCK_STREAM)
     traffic_socket.connect((base_station_ip, 2166))
@@ -68,15 +73,19 @@ def start_call(base_station_ip, target_msn):
     traffic_socket.close()
 
 
-def page_channel(name, base_station_ip):
+def page_channel(args):
     """ Runs in background to receive calls from base station
 
     Interrupts main process with call log updates as call comes in
 
     Arguments:
-    name -- MSN of the current phone
-    base_station_ip -- IP address of the base station
+    args -- dictionary that contains the following arguments:
+        name -- MSN of the current phone
+        base_station_ip -- IP address of the base station
     """
+
+    name = args["name"]
+    base_station_ip = args["base_station_ip"]
 
     # Creates setup message and source_name of the message received
     if name == 'MS2':
@@ -99,18 +108,23 @@ def page_channel(name, base_station_ip):
     if msg == setup:
         page_socket.close()
         print(msg)
-        recv_call(source_name, base_station_ip)
+        return source_name
 
 
-def recv_call(name, base_station_ip):
+def recv_call(args):
     """ Called from the paging thread, handles receiving call from base station
 
     Sends status messages RINGING and CONNECT after paged
 
     Arguments:
-    name -- msn of the calling phone
-    base_station_ip -- IP address of the base station call is coming from
+    args -- dictionary that contains the following arguments:
+        base_station_ip -- IP address of the base station call is coming from
     """
+
+    name = page_channel(args)
+    base_station_ip = args["base_station_ip"]
+
+
     traffic_socket = socket(AF_INET, SOCK_STREAM)
     traffic_socket.connect((base_station_ip, 2166))
 
@@ -137,6 +151,15 @@ def recv_call(name, base_station_ip):
 
     traffic_socket.close()
 
+def simulate_call_failed(args):
+    """simulates dropping call in mid set up
+
+    This function should be called on the 'receiver'
+    will stop sending setup messages to simulate losing
+    network connectivity
+    """
+
+
 
 def menu(name):
     """ Creates menu for phone simulator
@@ -150,8 +173,7 @@ def menu(name):
 
     options = [
         '1. Call '+target_msn,
-        '2. Prepare to receive call',
-        '3. Quit'
+        '2. Prepare to receive call'
     ]
 
     print(len(options))
@@ -180,15 +202,24 @@ def main():
 
         base_station_ip = pilot()
 
-        while True:
-            option, target_msn = menu(name)
+        menu_functions = {
+            "1": start_call,
+            "2": recv_call
+        }
 
-            if option == 1:
-                start_call(base_station_ip, target_msn)
-            elif option == 2:
-                page_channel(name, base_station_ip)
-            elif option == 3:
-                return
+        menu_args = {
+            "base_station_ip": base_station_ip,
+            "name": name,
+            "target_msn": "",
+            "sim_flag": 0
+        }
+
+        while True:
+            # Read options from menu, call correct function and pass arguments
+            option, target_msn = menu(name)
+            menu_args["target_msn"] = target_msn
+            menu_args["sim_flag"] = option
+            menu_functions[option](menu_args)
 
     except KeyboardInterrupt:
         return

@@ -2,6 +2,7 @@ from socket import *
 from threading import Thread, Event
 from queue import Queue
 import time
+import select
 
 
 # Object to enter queues when server is shutting down
@@ -45,6 +46,13 @@ def page(close_server_event, page_queue):
         page_socket.sendto(page_obj, ('<broadcast>', 2077))
 
 
+def call_error(mobile_socket, err_msg):
+    """Sends error message to mobile if error during call processing
+    """
+    mobile_socket.sendall(err_msg)
+    mobile_socket.close()
+
+
 def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
     """ Setup call for calling phone
 
@@ -64,7 +72,12 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
     mobile_socket.sendall(ok_msg)
 
     # Wait for receiver Ringing Response
-    ringing = mobile_caller_queue.get()
+    try:
+        ringing = mobile_caller_queue.get(timeout=3)
+    except Queue.Empty:
+        print('CALLER: No response from receiver, unreachable')
+        call_error(mobile_socket, 'NUMBER UNREACHABLE'.encode('utf-8'))
+        return
 
     # Ensure server not shutting down
     if ringing is _shutdown:
@@ -73,7 +86,13 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
     mobile_socket.sendall(ringing)
 
     # Wait for Connected response
-    connected = mobile_caller_queue.get()
+    try:
+        connected = mobile_caller_queue.get(timeout=3)
+    except Queue.Empty:
+        print('CALLER: Call Failed')
+        call_error(mobile_socket, 'CALL FAILED'.encode('utf-8'))
+        return
+
     if ringing is _shutdown:
         return
     print('CALLER: '+str(connected))
@@ -93,7 +112,12 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
     mobile_receiver_queue.put(end_call_msg)
     
     # Read message from receiver confirming call ended, send to mobile
-    call_ended_msg = mobile_caller_queue.get()
+    try:
+        call_ended_msg = mobile_caller_queue.get(timeout=3)
+    except Queue.Empty:
+        call_error(mobile_socket, 'CALL ENDED')
+        return
+    
     print('CALLER: ' +str(call_ended_msg))
     mobile_socket.sendall(call_ended_msg)
 
@@ -125,12 +149,19 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
     mobile_caller_queue.put(connected_msg)
 
     # Wait for caller OK message
-    ok_msg = mobile_receiver_queue.get()
+    try:
+        ok_msg = mobile_receiver_queue.get(timeout=3)
+    except Queue.Empty:
+        call_error(mobile_socket, 'CALL FAILED'.encode('utf-8'))
+
     print('RECEIVER: '+str(ok_msg))
     mobile_socket.sendall(ok_msg)
 
     # Wait for call end message from caller
-    end_call_msg = mobile_receiver_queue.get()
+    try:
+        end_call_msg = mobile_receiver_queue.get(timeout=3)
+    except Queue.Empty:
+        call_error(mobile_socket, 'CALL ENDED'.encode('utf-8'))
     print('RECEIVER: '+str(end_call_msg))
     mobile_socket.sendall(end_call_msg)
 
@@ -169,6 +200,8 @@ def call_handler(mobile_socket, mobile_caller_queue, mobile_receiver_queue, page
 def main():
     try:
         print("Starting server...")
+        print("Server Started")
+        print("Use ctrl-C to close server when done")
         # Queues to handle passing messages between each of the phones
         # mobile 1 will only ever get from mobile_caller_queue and put into
         # mobile_receiver_queue and vice-versa
