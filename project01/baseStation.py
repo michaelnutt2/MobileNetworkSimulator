@@ -4,10 +4,12 @@ from queue import Queue, Empty
 import time
 import select
 
-
+# Constants
 # Object to enter queues when server is shutting down
 _shutdown = object()
-
+pilot_port = 2055
+traffic_port = 2166
+paging_port = 2077
 
 def pilot(close_server_event):
     """ broadcast base station information to new mobiles connecting
@@ -23,7 +25,7 @@ def pilot(close_server_event):
         if close_server_event.is_set():
             break
         time.sleep(5)
-        pilot_socket.sendto(msg.encode('utf-8'), ('<broadcast>', 2055))
+        pilot_socket.sendto(msg.encode('utf-8'), ('<broadcast>', pilot_port))
 
 
 def page(close_server_event, page_queue):
@@ -43,7 +45,7 @@ def page(close_server_event, page_queue):
         page_obj = page_queue.get()
         if page_obj is _shutdown:
             break
-        page_socket.sendto(page_obj, ('<broadcast>', 2077))
+        page_socket.sendto(page_obj, ('<broadcast>', paging_port))
 
 
 def call_error(mobile_socket, err_msg):
@@ -222,7 +224,7 @@ def main():
         # Set up server socket to manage mobile connections
         server_socket = socket(AF_INET, SOCK_STREAM)
         server_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-        server_socket.bind(('', 2166))
+        server_socket.bind(('', traffic_port))
         server_socket.listen(10)
         
         # Start server to listen for incoming mobile calls

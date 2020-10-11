@@ -3,6 +3,11 @@ from threading import Thread, Event
 import argparse
 import select
 
+# Constants
+pilot_port = 2055
+traffic_port = 2166
+paging_port = 2077
+
 def pilot():
     """ Runs on startup to receive Base Station information
 
@@ -11,7 +16,7 @@ def pilot():
     """
     msg = ''
     pilot_socket = socket(AF_INET, SOCK_DGRAM)
-    pilot_socket.bind(('<broadcast>', 2055))
+    pilot_socket.bind(('<broadcast>', pilot_port))
     while msg != 'PILOT':
         print('Searching for network...')
         pilot_msg = pilot_socket.recvfrom(255)
@@ -39,7 +44,7 @@ def start_call(args):
 
     # Set up socket to initiate call
     traffic_socket = socket(AF_INET, SOCK_STREAM)
-    traffic_socket.connect((base_station_ip, 2166))
+    traffic_socket.connect((base_station_ip, traffic_port))
 
     setup_msg = 'SETUP '+target_msn
     setup_msg_encoded = setup_msg.encode('utf-8')
@@ -97,7 +102,7 @@ def page_channel(args):
 
     # Sets up broadcast receiver to receive page messages
     page_socket = socket(AF_INET, SOCK_DGRAM)
-    page_socket.bind(('<broadcast>', 2077))
+    page_socket.bind(('<broadcast>', paging_port))
 
     page_msg = page_socket.recvfrom(255)
 
@@ -126,7 +131,7 @@ def recv_call(args):
 
 
     traffic_socket = socket(AF_INET, SOCK_STREAM)
-    traffic_socket.connect((base_station_ip, 2166))
+    traffic_socket.connect((base_station_ip, traffic_port))
 
     ringing = 'RINGING '+name
     traffic_socket.sendall(ringing.encode('utf-8'))
@@ -157,8 +162,23 @@ def simulate_call_failed(args):
     This function should be called on the 'receiver'
     will stop sending setup messages to simulate losing
     network connectivity
+
+    Arguments:
+    args -- dictionary that contains the following arguments
+        base_station_ip -- IP address of the base station to send messages to
     """
 
+    name = page_channel(args)
+    base_station_ip = args["base_station_ip"]
+
+    traffic_socket = socket(AF_INET, SOCK_STREAM)
+    traffic_socket.connect((base_station_ip, traffic_port))
+
+    ringing = 'RINGING '+name
+    traffic_socket.sendall(ringing.encode('utf-8'))
+    print(ringing)
+    print('CALL FAILED')
+    traffic_socket.close()
 
 
 def menu(name):
