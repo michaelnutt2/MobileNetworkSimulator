@@ -4,9 +4,10 @@ import argparse
 import select
 
 # Constants
-pilot_port = 2055
-traffic_port = 2166
-paging_port = 2077
+PILOT_PORT = 2055
+TRAFFIC_PORT = 2166
+PAGING_PORT = 2077
+FATAL_ERR = object()
 
 def pilot():
     """ Runs on startup to receive Base Station information
@@ -16,10 +17,11 @@ def pilot():
     """
     msg = ''
     pilot_socket = socket(AF_INET, SOCK_DGRAM)
-    pilot_socket.bind(('<broadcast>', pilot_port))
+    pilot_socket.bind(('<broadcast>', PILOT_PORT))
     while msg != 'PILOT':
         print('Searching for network...')
         pilot_msg = pilot_socket.recvfrom(255)
+        
         msg = pilot_msg[0].decode('utf-8')
     print('Connected to network')
     pilot_socket.close()
@@ -44,7 +46,7 @@ def start_call(args):
 
     # Set up socket to initiate call
     traffic_socket = socket(AF_INET, SOCK_STREAM)
-    traffic_socket.connect((base_station_ip, traffic_port))
+    traffic_socket.connect((base_station_ip, TRAFFIC_PORT))
 
     setup_msg = 'SETUP '+target_msn
     setup_msg_encoded = setup_msg.encode('utf-8')
@@ -54,14 +56,29 @@ def start_call(args):
 
     # Wait for confirmation response from server
     msg = traffic_socket.recv(255)
+    if not msg:
+        traffic_socket.close()
+        print('CONNECTION LOST')
+        return
+    
     print(msg)
 
     # Wait for ringing message from receiving mobile
     msg = traffic_socket.recv(255)
+    if not msg:
+        traffic_socket.close()
+        print('CONNECTION LOST')
+        return
+
     print(msg)
 
     # Wait for connected message from mobile
     msg = traffic_socket.recv(255)
+    if not msg:
+        traffic_socket.close()
+        print('CONNECTION LOST')
+        return
+
     print(msg)
 
     ok_msg = 'OK'
@@ -73,6 +90,11 @@ def start_call(args):
 
     # Wait for confirmation message from receiver
     call_ended_msg = traffic_socket.recv(255)
+    if not call_ended_msg:
+        traffic_socket.close()
+        print('CONNECTION LOST')
+        return
+
     print(call_ended_msg)
 
     traffic_socket.close()
@@ -102,7 +124,7 @@ def page_channel(args):
 
     # Sets up broadcast receiver to receive page messages
     page_socket = socket(AF_INET, SOCK_DGRAM)
-    page_socket.bind(('<broadcast>', paging_port))
+    page_socket.bind(('<broadcast>', PAGING_PORT))
 
     page_msg = page_socket.recvfrom(255)
 
@@ -131,7 +153,7 @@ def recv_call(args):
 
 
     traffic_socket = socket(AF_INET, SOCK_STREAM)
-    traffic_socket.connect((base_station_ip, traffic_port))
+    traffic_socket.connect((base_station_ip, TRAFFIC_PORT))
 
     ringing = 'RINGING '+name
     traffic_socket.sendall(ringing.encode('utf-8'))
@@ -146,6 +168,11 @@ def recv_call(args):
 
     # Wait for end call message
     end_call_msg = traffic_socket.recv(255)
+    if not end_call_msg:
+        traffic_socket.close()
+        print('CONNECTION LOST')
+        return
+
     print(end_call_msg)
 
     # Send call end confirmation
@@ -172,7 +199,7 @@ def simulate_call_failed(args):
     base_station_ip = args["base_station_ip"]
 
     traffic_socket = socket(AF_INET, SOCK_STREAM)
-    traffic_socket.connect((base_station_ip, traffic_port))
+    traffic_socket.connect((base_station_ip, TRAFFIC_PORT))
 
     ringing = 'RINGING '+name
     traffic_socket.sendall(ringing.encode('utf-8'))
