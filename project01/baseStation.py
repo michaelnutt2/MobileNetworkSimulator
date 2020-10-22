@@ -47,7 +47,6 @@ def page(close_server_event, page_queue):
             break
         page_socket.sendto(page_obj, ('<broadcast>', paging_port))
 
-
 def call_error(mobile_socket, err_msg):
     """Sends error message to mobile if error during call processing
     """
@@ -55,7 +54,7 @@ def call_error(mobile_socket, err_msg):
     mobile_socket.close()
 
 
-def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
+def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, target):
     """ Setup call for calling phone
 
     Provides means to communicate between this thread and the receiving phone thread
@@ -68,66 +67,94 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
     mobile_receiver_queue -- used by initial caller to send messages
         used by call receiver to receive messages
     """
-    # Sending initial OK confirmation for setup message
-    ok_msg = 'OK'.encode('utf-8')
-    print('CALLER: '+str(ok_msg))
-    mobile_socket.sendall(ok_msg)
-
-    # Wait for receiver Ringing Response
     try:
-        ringing = mobile_caller_queue.get(timeout=5)
-    except Empty:
-        print('CALLER: No response from receiver, unreachable')
-        call_error(mobile_socket, 'NUMBER UNREACHABLE'.encode('utf-8'))
-        return
+        # Sending initial OK confirmation for setup message
+        ok_msg = 'OK'.encode('utf-8')
+        print(msn+':'+str(ok_msg))
+        mobile_socket.sendall(ok_msg)
 
-    # Ensure server not shutting down
-    if ringing is _shutdown:
-        return
-    print('CALLER: '+str(ringing))
-    mobile_socket.sendall(ringing)
+        # Wait for receiver Ringing Response
+        try:
+            ringing = mobile_caller_queue.get(timeout=5)
+        except Empty:
+            print(msn+': No response from receiver, unreachable')
+            call_error(mobile_socket, 'NUMBER UNREACHABLE'.encode('utf-8'))
+            return
 
-    # Wait for Connected response
-    try:
-        connected = mobile_caller_queue.get(timeout=5)
-    except Empty:
-        print('CALLER: Call Failed')
-        call_error(mobile_socket, 'CALL FAILED'.encode('utf-8'))
-        return
+        # Ensure server not shutting down
+        if ringing is _shutdown:
+            return
+        print(msn+': '+str(ringing))
+        mobile_socket.sendall(ringing)
 
-    if ringing is _shutdown:
-        return
-    print('CALLER: '+str(connected))
-    mobile_socket.sendall(connected)
+        # Wait for Connected response
+        try:
+            connected = mobile_caller_queue.get(timeout=5)
+        except Empty:
+            print(msn+': Call Failed')
+            call_error(mobile_socket, 'CALL FAILED'.encode('utf-8'))
+            return
 
-    # Wait for confirmation from Mobile on connected
-    ok_msg = mobile_socket.recv(255)
-    print('CALLER: '+str(ok_msg))
-    mobile_receiver_queue.put(ok_msg)
+        if ringing is _shutdown:
+            return
+        print(msn+': '+str(connected))
+        mobile_socket.sendall(connected)
 
+        # Wait for confirmation from Mobile on connected
+        ok_msg = mobile_socket.recv(255)
+        print(msn+': '+str(ok_msg))
+        mobile_receiver_queue.put(ok_msg)
 
-    # Start call teardown, wait for Call End message from mobile
-    end_call_msg = mobile_socket.recv(255)
+        # Start sending/receiving traffic from user
+        timeout = 2
+        call_end = False
+        while True:
+            read_list, _, _ = select.select(mobile_socket, [], [], timeout)
+            if read_list:
+                msg = mobile_socket.recv(255)
+                msg_decoded = msg.decode('utf-8')
+                mobile_receiver_queue.put(msg)
+                print(msn+': '+str(msg_decoded))
+                if msg_decoded == 'END CALL':
+                    call_end = True
+                    break
+            try:
+                msg_from_receiver = mobile_caller_queue.get(timeout=2)
+            except Empty:
+                continue
+            
+            print(msg_from_receiver)
+            mobile_socket.sendall(msg_from_receiver)
 
-    # Print status message, then place on queue for receiving call
-    print('CALLER: '+str(end_call_msg))
-    mobile_receiver_queue.put(end_call_msg)
+            if msg_from_receiver == 'END CALL':
+                break
+            
+        if call_end:
+            # Read message from receiver confirming call ended, send to mobile
+            try:
+                call_ended_msg = mobile_caller_queue.get(timeout=5)
+            except Empty:
+                call_error(mobile_socket, 'CALL ENDED')
+                return
+            
+            print(msn+': ' +str(call_ended_msg))
+            mobile_socket.sendall(call_ended_msg)
+        else:
+            call_ended_msg = mobile_socket.recv(255)
+            if not call_ended_msg:
+                mobile_socket.close()
+                print(msn+': CALL FAILED')
+                return
+            print(msn+': '+str(call_ended_msg))
+            mobile_receiver_queue.put(call_ended_msg)
     
-    # Read message from receiver confirming call ended, send to mobile
-    try:
-        call_ended_msg = mobile_caller_queue.get(timeout=5)
-    except Empty:
-        call_error(mobile_socket, 'CALL ENDED')
-        return
-    
-    print('CALLER: ' +str(call_ended_msg))
-    mobile_socket.sendall(call_ended_msg)
-
-    # close connection
-    mobile_socket.close()
+        # close connection
+        mobile_socket.close()
+    except ConnectionResetError:
+        print(msn+': CALL FAILED')
 
 
-def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
+def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, caller):
     """ Setup call for receiving phone
 
     Provides means to communicate between this thread and the calling phone thread
@@ -143,7 +170,7 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
     try:
         # send initial ok confirmation on ringing message
         ok_msg = 'OK'.encode('utf-8')
-        print('RECEIVER: '+str(ok_msg))
+        print(msn+': '+str(ok_msg))
         mobile_socket.sendall(ok_msg)
 
         # Wait for receiver connected message
@@ -152,7 +179,7 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
             mobile_socket.close()
             return
         
-        print('RECEIVER: '+str(connected_msg))
+        print(msn+': '+str(connected_msg))
         mobile_caller_queue.put(connected_msg)
 
         # Wait for caller OK message
@@ -161,32 +188,66 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue):
         except Empty:
             call_error(mobile_socket, 'CALL FAILED'.encode('utf-8'))
 
-        print('RECEIVER: '+str(ok_msg))
+        print(msn+': '+str(ok_msg))
         mobile_socket.sendall(ok_msg)
 
-        # Wait for call end message from caller
-        try:
-            end_call_msg = mobile_receiver_queue.get(timeout=5)
-        except Empty:
-            call_error(mobile_socket, 'CALL ENDED'.encode('utf-8'))
-        print('RECEIVER: '+str(end_call_msg))
-        mobile_socket.sendall(end_call_msg)
+        timeout = 2
+        call_end = False
+        while True:
+            read_list, _, _ = select.select(mobile_socket, [], [], timeout)
+            if read_list:
+                msg = mobile_socket.recv(255)
+                msg_decoded = msg.decode('utf-8')
+                mobile_caller_queue.put(msg)
+                print(msn+': '+msg_decoded)
+                if msg_decoded == 'END CALL':
+                    call_end = True
+                    break
+            try:
+                msg_from_caller = mobile_receiver_queue.get(timeout=2)
+            except Empty:
+                continue
+
+            print(msg_from_caller)
+            mobile_socket.sendall(msg_from_caller)
+
+            if msg_from_caller == 'END CALL':
+                break
+
+        if call_end:
+            # Read message from receiver confirming call ended, send to mobile
+            try:
+                call_ended_msg = mobile_receiver_queue.get(timeout=5)
+            except Empty:
+                call_error(mobile_socket, 'CALL ENDED')
+                return
+
+            print(msn+': '+str(call_ended_msg))
+            mobile_socket.sendall(call_ended_msg)
+        else:
+            call_ended_msg = mobile_socket.recv(255)
+            if not call_ended_msg:
+                mobile_socket.close()
+                print(msn+': CALL FAILEd')
+                return
+            print(msn+': '+str(call_ended_msg))
+            mobile_caller_queue.put(call_ended_msg)
 
         # Wait for confirmation of call end from receiver
         # place on caller queue
         call_ended_msg = mobile_socket.recv(255)
         if not call_ended_msg:
             mobile_socket.close()
-            print('RECEIVER: CALL FAILED')
+            print(msn+': CALL FAILED')
             return
 
-        print('RECEIVER: '+str(call_ended_msg))
+        print(msn+': '+str(call_ended_msg))
         mobile_caller_queue.put(call_ended_msg)
 
         # Close connection
         mobile_socket.close()
     except ConnectionResetError:
-        print('RECIEVER: CALL FAILED')
+        print(msn+': CALL FAILED')
 
 
 def call_handler(mobile_socket, mobile_caller_queue, mobile_receiver_queue, page_queue):
@@ -201,13 +262,14 @@ def call_handler(mobile_socket, mobile_caller_queue, mobile_receiver_queue, page
     """
     msg = mobile_socket.recv(255)
     msg_decode = msg.decode('utf-8')
+    msg_split = msg_decode.split()
     
-    if msg_decode[0:5] == 'SETUP':
+    if msg_decode[1] == 'SETUP':
         page_queue.put(msg)
-        call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue)
+        call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msg_decode[0], msg_decode[2])
     else:
         mobile_caller_queue.put(msg)
-        call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue)
+        call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msg_decode[0], msg_decode[1])
 
 
 def main():
@@ -218,8 +280,8 @@ def main():
         # Queues to handle passing messages between each of the phones
         # mobile 1 will only ever get from mobile_caller_queue and put into
         # mobile_receiver_queue and vice-versa
-        mobile_caller_queue = Queue(maxsize=1)
-        mobile_receiver_queue = Queue(maxsize=1)
+        mobile_caller_queue = Queue(maxsize=10)
+        mobile_receiver_queue = Queue(maxsize=10)
         # Queue to talk to Pager thread to tell it which mobile to page
         page_queue = Queue(maxsize=5)
         # Event to signal that the server is closing

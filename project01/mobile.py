@@ -2,6 +2,7 @@ from socket import *
 from threading import Thread, Event
 import argparse
 import select
+import sys
 
 # Constants
 PILOT_PORT = 2055
@@ -43,12 +44,13 @@ def start_call(args):
     
     base_station_ip = args["base_station_ip"]
     target_msn = args["target_msn"]
+    msn = args["name"]
 
     # Set up socket to initiate call
     traffic_socket = socket(AF_INET, SOCK_STREAM)
     traffic_socket.connect((base_station_ip, TRAFFIC_PORT))
 
-    setup_msg = 'SETUP '+target_msn
+    setup_msg = msn+'SETUP '+target_msn
     setup_msg_encoded = setup_msg.encode('utf-8')
 
     # send setup message
@@ -116,10 +118,10 @@ def page_channel(args):
 
     # Creates setup message and source_name of the message received
     if name == 'MS2':
-        setup = 'SETUP MS2'
+        setup = 'MS1 SETUP MS2'
         source_name = 'MS1'
     else:
-        setup = 'SETUP MS1'
+        setup = 'MS2 SETUP MS1'
         source_name = 'MS2'
 
     # Sets up broadcast receiver to receive page messages
@@ -149,13 +151,14 @@ def recv_call(args):
     """
 
     name = page_channel(args)
+    msn = args['name']
     base_station_ip = args["base_station_ip"]
 
 
     traffic_socket = socket(AF_INET, SOCK_STREAM)
     traffic_socket.connect((base_station_ip, TRAFFIC_PORT))
 
-    ringing = 'RINGING '+name
+    ringing = msn+' RINGING '+name
     traffic_socket.sendall(ringing.encode('utf-8'))
     print(ringing)
 
@@ -221,20 +224,21 @@ def menu(name):
     options = [
         '1. Call '+target_msn,
         '2. Prepare to receive call',
-        '3. Simulate Call Failed'
+        '3. Simulate Call Failed',
+        '4. Quit'
     ]
 
-    while ans > len(options) or ans <= 0:
-        print("Select an option:")
-        for option in options:
-            print(option)
+    # while ans > len(options) or ans <= 0:
+    print("Select an option:")
+    for option in options:
+        print(option)
 
-        ans = int(input())
+    #     ans = int(input())
 
-        if ans > len(options) or ans <= 0:
-            print("Invalid input")
+    #     if ans > len(options) or ans <= 0:
+    #         print("Invalid input")
 
-    return ans, target_msn
+    return target_msn
 
 
 def main():
@@ -251,7 +255,8 @@ def main():
         menu_functions = {
             1: start_call,
             2: recv_call,
-            3: simulate_call_failed
+            3: simulate_call_failed,
+            4: 'quit'
         }
 
         menu_args = {
@@ -260,12 +265,24 @@ def main():
             "target_msn": "",
             "sim_flag": 0
         }
+        timeout = 2
+        target_msn = menu(name)
+        menu_args["target_msn"] = target_msn
 
         while True:
             # Read options from menu, call correct function and pass arguments
-            option, target_msn = menu(name)
-            menu_args["target_msn"] = target_msn
-            menu_functions[option](menu_args)
+            sys.stdin.flush()
+            read_list, _, _, = select.select([sys.stdin], [], [], timeout)
+            if not read_list:
+                continue
+            if read_list[0] is sys.stdin:
+                ans = int(input())
+                if ans == 4:
+                    return
+                elif ans > len(menu_functions) or ans <= 0:
+                    print("Invalid Input")
+                else:
+                    menu_functions[ans](menu_args)
 
     except KeyboardInterrupt:
         return
