@@ -122,7 +122,6 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, t
             except Empty:
                 continue
             
-            print(msg_from_receiver.decode('utf-8'))
             mobile_socket.sendall(msg_from_receiver)
 
             if msg_from_receiver == 'END CALL':
@@ -203,7 +202,6 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, 
             except Empty:
                 continue
 
-            print(msg_from_caller.decode('utf-8'))
             mobile_socket.sendall(msg_from_caller)
 
             if msg_from_caller == 'END CALL':
@@ -221,9 +219,6 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, 
             mobile_socket.sendall(call_ended_msg)
         else:
             call_ended_msg = mobile_socket.recv(255)
-            if not call_ended_msg:
-                mobile_socket.close()
-                return
             print(msn+': '+call_ended_msg.decode('utf-8'))
             mobile_caller_queue.put(call_ended_msg)
 
