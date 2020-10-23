@@ -40,9 +40,10 @@ def page(close_server_event, page_queue):
     # Socket setup for broadcast channel
     page_socket = socket(AF_INET, SOCK_DGRAM)
     page_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-    
+    print('Inside Page')
     while True:
         page_obj = page_queue.get()
+        print(page_obj)
         if page_obj is _shutdown:
             break
         page_socket.sendto(page_obj, ('<broadcast>', paging_port))
@@ -263,8 +264,9 @@ def call_handler(mobile_socket, mobile_caller_queue, mobile_receiver_queue, page
     msg = mobile_socket.recv(255)
     msg_decode = msg.decode('utf-8')
     msg_split = msg_decode.split()
+    print(msg_split)
     
-    if msg_decode[1] == 'SETUP':
+    if msg_split[1] == 'SETUP':
         page_queue.put(msg)
         call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msg_split[0], msg_split[2])
     else:
