@@ -88,27 +88,32 @@ def start_call(args):
 
     timeout = 2
     while True:
-        sys.stdin.flush()
-        read_list, _, _ = select.select([traffic_socket, sys.stdin], [], [], timeout)
-        if not read_list:
-            continue
-        if read_list[0] == traffic_socket:
-            msg = traffic_socket.recv(255)
-            print(msg)
-            if msg.decode('utf-8') == 'END CALL':
-                traffic_socket.sendall('CALL ENDED'.encode('utf-8'))
-                traffic_socket.close()
-        else:
-            msg = input()
-            print(msg)
-            traffic_socket.sendall(msg.encode('utf-8'))
-            if msg == 'END CALL':
-                # Wait for confirmation message
-                call_ended_msg = traffic_socket.recv(255)
-                if not call_ended_msg:
+        try:
+            sys.stdin.flush()
+            read_list, _, _ = select.select([traffic_socket, sys.stdin], [], [], timeout)
+            if not read_list:
+                continue
+            if read_list[0] == traffic_socket:
+                msg = traffic_socket.recv(255)
+                print(msg)
+                if msg.decode('utf-8') == 'END CALL':
+                    traffic_socket.sendall('CALL ENDED'.encode('utf-8'))
                     traffic_socket.close()
-                    print('CONNECTION LOST')
+            else:
+                msg = input()
+                traffic_socket.sendall(msg.encode('utf-8'))
+                if msg == 'END CALL':
+                    # Wait for confirmation message
+                    call_ended_msg = traffic_socket.recv(255)
+                    if not call_ended_msg:
+                        print('CONNECTION LOST')
+                    print(call_ended_msg)
+                    traffic_socket.close()
                     return
+        except ValueError:
+            print('CONNECTION LOST')
+            traffic_socket.close()
+            return
 
 
 def page_channel(args):
