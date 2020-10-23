@@ -50,7 +50,7 @@ def start_call(args):
     traffic_socket = socket(AF_INET, SOCK_STREAM)
     traffic_socket.connect((base_station_ip, TRAFFIC_PORT))
 
-    setup_msg = msn+'SETUP '+target_msn
+    setup_msg = msn+' SETUP '+target_msn
     setup_msg_encoded = setup_msg.encode('utf-8')
 
     # send setup message
@@ -86,20 +86,29 @@ def start_call(args):
     ok_msg = 'OK'
     traffic_socket.sendall(ok_msg.encode('utf-8'))
 
-    # Start call teardown, send end call message
-    end_call_msg = 'END CALL'.encode('utf-8')
-    traffic_socket.sendall(end_call_msg)
-
-    # Wait for confirmation message from receiver
-    call_ended_msg = traffic_socket.recv(255)
-    if not call_ended_msg:
-        traffic_socket.close()
-        print('CONNECTION LOST')
-        return
-
-    print(call_ended_msg)
-
-    traffic_socket.close()
+    timeout = 2
+    while True:
+        sys.stdin.flush()
+        read_list, _, _ = select.select([traffic_socket, sys.stdin], [], [], timeout)
+        if not read_list:
+            continue
+        if read_list[0] == traffic_socket:
+            msg = traffic_socket.recv(255)
+            print(msg)
+            if msg.decode('utf-8') == 'END CALL':
+                traffic_socket.sendall('CALL ENDED'.encode('utf-8'))
+                traffic_socket.close()
+        else:
+            msg = input()
+            print(msg)
+            traffic_socket.sendall(msg.encode('utf-8'))
+            if msg == 'END CALL':
+                # Wait for confirmation message
+                call_ended_msg = traffic_socket.recv(255)
+                if not call_ended_msg:
+                    traffic_socket.close()
+                    print('CONNECTION LOST')
+                    return
 
 
 def page_channel(args):
@@ -169,22 +178,30 @@ def recv_call(args):
     traffic_socket.sendall(connect_msg.encode('utf-8'))
     print(connect_msg)
 
-    # Wait for end call message
-    end_call_msg = traffic_socket.recv(255)
-    if not end_call_msg:
-        traffic_socket.close()
-        print('CONNECTION LOST')
-        return
+    timeout = 2
+    while True:
+        sys.stdin.flush()
+        read_list, _, _ = select.select([traffic_socket, sys.stdin], [], [], timeout)
+        if not read_list:
+            continue
+        if read_list[0] == traffic_socket:
+            msg = traffic_socket.recv(255)
+            print(msg)
+            if msg.decode('utf-8') == 'END CALL':
+                traffic_socket.sendall('CALL ENDED'.encode('utf-8'))
+                traffic_socket.close()
+        else:
+            msg = input()
+            print(msg)
+            traffic_socket.sendall(msg.encode('utf-8'))
+            if msg == 'END CALL':
+                # Wait for confirmation message from receiver
+                call_ended_msg = traffic_socket.recv(255)
+                if not call_ended_msg:
+                    traffic_socket.close()
+                    print('CONNECTION LOST')
+                    return
 
-    print(end_call_msg)
-
-    # Send call end confirmation
-    call_end_msg = 'CALL ENDED'.encode('utf-8')
-    traffic_socket.sendall(call_end_msg)
-
-    print(call_end_msg)
-
-    traffic_socket.close()
 
 def simulate_call_failed(args):
     """simulates dropping call in mid set up
@@ -277,6 +294,7 @@ def main():
                 continue
             if read_list[0] is sys.stdin:
                 ans = int(input())
+                print(ans)
                 if ans == 4:
                     return
                 elif ans > len(menu_functions) or ans <= 0:
