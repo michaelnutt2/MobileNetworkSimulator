@@ -169,7 +169,7 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, 
     try:
         # send initial ok confirmation on ringing message
         ok_msg = 'OK'
-        print(msn+': '+ok_msg.decode('utf-8'))
+        print(msn+': '+ok_msg)
         mobile_socket.sendall(ok_msg.encode('utf-8'))
 
         # Wait for receiver connected message
