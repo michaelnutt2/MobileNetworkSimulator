@@ -266,10 +266,10 @@ def call_handler(mobile_socket, mobile_caller_queue, mobile_receiver_queue, page
     
     if msg_decode[1] == 'SETUP':
         page_queue.put(msg)
-        call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msg_decode[0], msg_decode[2])
+        call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msg_split[0], msg_split[2])
     else:
         mobile_caller_queue.put(msg)
-        call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msg_decode[0], msg_decode[1])
+        call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msg_split[0], msg_split[1])
 
 
 def main():
