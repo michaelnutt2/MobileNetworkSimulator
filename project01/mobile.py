@@ -63,7 +63,7 @@ def start_call(args):
         print('CONNECTION LOST')
         return
     
-    print(msg)
+    print(msg.decode('utf-8'))
 
     # Wait for ringing message from receiving mobile
     msg = traffic_socket.recv(255)
@@ -72,7 +72,7 @@ def start_call(args):
         print('CONNECTION LOST')
         return
 
-    print(msg)
+    print(msg.decode('utf-8'))
 
     # Wait for connected message from mobile
     msg = traffic_socket.recv(255)
@@ -81,7 +81,7 @@ def start_call(args):
         print('CONNECTION LOST')
         return
 
-    print(msg)
+    print(msg.decode('utf-8'))
 
     ok_msg = 'OK'
     traffic_socket.sendall(ok_msg.encode('utf-8'))
@@ -174,15 +174,15 @@ def recv_call(args):
     traffic_socket.connect((base_station_ip, TRAFFIC_PORT))
 
     ringing = msn+' RINGING '+name
-    traffic_socket.sendall(ringing.encode('utf-8'))
     print(ringing)
+    traffic_socket.sendall(ringing.encode('utf-8'))
 
     ok = traffic_socket.recv(255)
     print(ok)
 
     connect_msg = 'CONNECT '+name
-    traffic_socket.sendall(connect_msg.encode('utf-8'))
     print(connect_msg)
+    traffic_socket.sendall(connect_msg.encode('utf-8'))
 
     timeout = 2
     print('You are connected!')
@@ -251,6 +251,10 @@ def menu(target_msn):
         '3. Simulate Call Failed',
         '4. Quit'
     ]
+
+    for option in options:
+        print(option)
+
     return target_msn
 
 
@@ -296,7 +300,6 @@ def main():
                 continue
             if read_list[0] is sys.stdin:
                 ans = int(input())
-                print(ans)
                 if ans == 4:
                     return
                 elif ans > len(menu_functions) or ans <= 0:

@@ -122,7 +122,7 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, t
             except Empty:
                 continue
             
-            print(msg_from_receiver)
+            print(msg_from_receiver.decode('utf-8'))
             mobile_socket.sendall(msg_from_receiver)
 
             if msg_from_receiver == 'END CALL':
