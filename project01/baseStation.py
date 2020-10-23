@@ -69,7 +69,7 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, t
     try:
         # Sending initial OK confirmation for setup message
         ok_msg = 'OK'.encode('utf-8')
-        print(msn+':'+str(ok_msg))
+        print('OK')
         mobile_socket.sendall(ok_msg)
 
         # Wait for receiver Ringing Response
@@ -83,7 +83,7 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, t
         # Ensure server not shutting down
         if ringing is _shutdown:
             return
-        print(msn+': '+str(ringing))
+        print(msn+': '+ringing.decode('utf-8'))
         mobile_socket.sendall(ringing)
 
         # Wait for Connected response
@@ -96,12 +96,12 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, t
 
         if ringing is _shutdown:
             return
-        print(msn+': '+str(connected))
+        print(msn+': '+connected.decode('utf-8'))
         mobile_socket.sendall(connected)
 
         # Wait for confirmation from Mobile on connected
         ok_msg = mobile_socket.recv(255)
-        print(msn+': '+str(ok_msg))
+        print(msn+': '+ok_msg.decode('utf-8'))
         mobile_receiver_queue.put(ok_msg)
 
         # Start sending/receiving traffic from user
@@ -262,7 +262,6 @@ def call_handler(mobile_socket, mobile_caller_queue, mobile_receiver_queue, page
     msg = mobile_socket.recv(255)
     msg_decode = msg.decode('utf-8')
     msg_split = msg_decode.split()
-    print(msg_split)
     
     if msg_split[1] == 'SETUP':
         page_queue.put(msg)

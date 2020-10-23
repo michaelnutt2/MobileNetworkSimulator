@@ -101,7 +101,7 @@ def start_call(args):
                     traffic_socket.sendall('CALL ENDED'.encode('utf-8'))
                     traffic_socket.close()
             else:
-                msg = input()
+                msg = input().upper()
                 traffic_socket.sendall(msg.encode('utf-8'))
                 if msg == 'END CALL':
                     # Wait for confirmation message
@@ -178,7 +178,7 @@ def recv_call(args):
     traffic_socket.sendall(ringing.encode('utf-8'))
 
     ok = traffic_socket.recv(255)
-    print(ok)
+    print(ok.decode('utf-8'))
 
     connect_msg = 'CONNECT '+name
     print(connect_msg)
@@ -199,8 +199,7 @@ def recv_call(args):
                     traffic_socket.sendall('CALL ENDED'.encode('utf-8'))
                     traffic_socket.close()
             else:
-                msg = input()
-                print(msg)
+                msg = input().upper()
                 traffic_socket.sendall(msg.encode('utf-8'))
                 if msg == 'END CALL':
                     # Wait for confirmation message from receiver
