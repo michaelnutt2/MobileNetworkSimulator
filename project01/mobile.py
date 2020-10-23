@@ -87,6 +87,7 @@ def start_call(args):
     traffic_socket.sendall(ok_msg.encode('utf-8'))
 
     timeout = 2
+    print('You are connected!')
     while True:
         try:
             sys.stdin.flush()
@@ -95,7 +96,7 @@ def start_call(args):
                 continue
             if read_list[0] == traffic_socket:
                 msg = traffic_socket.recv(255)
-                print(msg)
+                print(msg.decode('utf-8'))
                 if msg.decode('utf-8') == 'END CALL':
                     traffic_socket.sendall('CALL ENDED'.encode('utf-8'))
                     traffic_socket.close()
@@ -107,7 +108,7 @@ def start_call(args):
                     call_ended_msg = traffic_socket.recv(255)
                     if not call_ended_msg:
                         print('CONNECTION LOST')
-                    print(call_ended_msg)
+                    print(call_ended_msg.decode('utf-8'))
                     traffic_socket.close()
                     return
         except ValueError:
@@ -184,6 +185,7 @@ def recv_call(args):
     print(connect_msg)
 
     timeout = 2
+    print('You are connected!')
     while True:
         try:
             sys.stdin.flush()
@@ -192,7 +194,7 @@ def recv_call(args):
                 continue
             if read_list[0] == traffic_socket:
                 msg = traffic_socket.recv(255)
-                print(msg)
+                print(msg.decode('utf-8'))
                 if msg.decode('utf-8') == 'END CALL':
                     traffic_socket.sendall('CALL ENDED'.encode('utf-8'))
                     traffic_socket.close()
@@ -204,9 +206,10 @@ def recv_call(args):
                     # Wait for confirmation message from receiver
                     call_ended_msg = traffic_socket.recv(255)
                     if not call_ended_msg:
-                        traffic_socket.close()
                         print('CONNECTION LOST')
-                        return
+                    print(call_ended_msg.decode('utf-8'))
+                    traffic_socket.close()
+                    return
         except ValueError:
             print('CONNECTION LOST')
             traffic_socket.close()
@@ -238,33 +241,16 @@ def simulate_call_failed(args):
     traffic_socket.close()
 
 
-def menu(name):
+def menu(target_msn):
     """ Creates menu for phone simulator
     """
-    if name == 'MS1':
-        target_msn = 'MS2'
-    else:
-        target_msn = 'MS1'
     
-    ans = 99
-
     options = [
         '1. Call '+target_msn,
         '2. Prepare to receive call',
         '3. Simulate Call Failed',
         '4. Quit'
     ]
-
-    # while ans > len(options) or ans <= 0:
-    print("Select an option:")
-    for option in options:
-        print(option)
-
-    #     ans = int(input())
-
-    #     if ans > len(options) or ans <= 0:
-    #         print("Invalid input")
-
     return target_msn
 
 
@@ -293,7 +279,13 @@ def main():
             "sim_flag": 0
         }
         timeout = 2
-        target_msn = menu(name)
+
+        if name == 'MS1':
+            target_msn = 'MS2'
+        else:
+            target_msn = 'MS1'
+
+        menu(target_msn)
         menu_args["target_msn"] = target_msn
 
         while True:
@@ -311,6 +303,7 @@ def main():
                     print("Invalid Input")
                 else:
                     menu_functions[ans](menu_args)
+                    menu(target_msn)
 
     except KeyboardInterrupt:
         return
