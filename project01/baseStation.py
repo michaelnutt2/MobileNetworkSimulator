@@ -140,10 +140,6 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, t
             mobile_socket.sendall(call_ended_msg)
         else:
             call_ended_msg = mobile_socket.recv(255)
-            if not call_ended_msg:
-                mobile_socket.close()
-                print(msn+': CALL FAILED')
-                return
             print(msn+': '+call_ended_msg.decode('utf-8'))
             mobile_receiver_queue.put(call_ended_msg)
     
@@ -227,21 +223,9 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, 
             call_ended_msg = mobile_socket.recv(255)
             if not call_ended_msg:
                 mobile_socket.close()
-                print(msn+': CALL FAILEd')
                 return
             print(msn+': '+call_ended_msg.decode('utf-8'))
             mobile_caller_queue.put(call_ended_msg)
-
-        # Wait for confirmation of call end from receiver
-        # place on caller queue
-        call_ended_msg = mobile_socket.recv(255)
-        if not call_ended_msg:
-            mobile_socket.close()
-            print(msn+': CALL FAILED')
-            return
-
-        print(msn+': '+call_ended_msg.decode('utf-8'))
-        mobile_caller_queue.put(call_ended_msg)
 
         # Close connection
         mobile_socket.close()
