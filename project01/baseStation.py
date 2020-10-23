@@ -40,10 +40,8 @@ def page(close_server_event, page_queue):
     # Socket setup for broadcast channel
     page_socket = socket(AF_INET, SOCK_DGRAM)
     page_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-    print('Inside Page')
     while True:
         page_obj = page_queue.get()
-        print(page_obj)
         if page_obj is _shutdown:
             break
         page_socket.sendto(page_obj, ('<broadcast>', paging_port))
