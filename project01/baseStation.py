@@ -110,7 +110,7 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, t
         timeout = 2
         call_end = False
         while True:
-            read_list, _, _ = select.select(mobile_socket, [], [], timeout)
+            read_list, _, _ = select.select([mobile_socket], [], [], timeout)
             if read_list:
                 msg = mobile_socket.recv(255)
                 msg_decoded = msg.decode('utf-8')
@@ -195,7 +195,7 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, 
         timeout = 2
         call_end = False
         while True:
-            read_list, _, _ = select.select(mobile_socket, [], [], timeout)
+            read_list, _, _ = select.select([mobile_socket], [], [], timeout)
             if read_list:
                 msg = mobile_socket.recv(255)
                 msg_decoded = msg.decode('utf-8')
