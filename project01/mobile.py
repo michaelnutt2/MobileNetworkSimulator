@@ -112,7 +112,7 @@ def start_call(args):
                     traffic_socket.close()
                     return
         except ValueError:
-            print('CONNECTION LOST')
+            print('CALL ENDED')
             traffic_socket.close()
             return
 
@@ -206,12 +206,12 @@ def recv_call(args):
                     # Wait for confirmation message from receiver
                     call_ended_msg = traffic_socket.recv(255)
                     if not call_ended_msg:
-                        print('CONNECTION LOST')
+                        print('CALL ENDED')
                     print(call_ended_msg.decode('utf-8'))
                     traffic_socket.close()
                     return
         except ValueError:
-            print('CONNECTION LOST')
+            print('CALL ENDED')
             traffic_socket.close()
             return
 
