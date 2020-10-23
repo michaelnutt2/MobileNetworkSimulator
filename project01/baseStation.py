@@ -133,6 +133,7 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, t
                 call_ended_msg = mobile_caller_queue.get(timeout=5)
             except Empty:
                 call_error(mobile_socket, 'CALL ENDED')
+                mobile_socket.close()
                 return
             
             print(msn+': ' +call_ended_msg.decode('utf-8'))
@@ -213,6 +214,7 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, 
                 call_ended_msg = mobile_receiver_queue.get(timeout=5)
             except Empty:
                 call_error(mobile_socket, 'CALL ENDED')
+                mobile_socket.close()
                 return
 
             print(msn+': '+call_ended_msg.decode('utf-8'))
