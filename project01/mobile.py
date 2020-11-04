@@ -99,7 +99,7 @@ def start_call(args):
                     msg = traffic_socket.recv(255)
                     if not msg.decode('utf-8'):
                         print('CALL FAILED') 
-                        read_sockets.close()
+                        traffic_socket.close()
                         return
                     print('CALLER: '+msg.decode('utf-8'))
                     if msg.decode('utf-8') == 'END CALL':
@@ -207,7 +207,7 @@ def recv_call(args):
                 msg = traffic_socket.recv(255)
                 if not msg.decode('utf-8'):
                         print('CALL FAILED') 
-                        read_sockets.close()
+                        traffic_socket.close()
                         return
                 print('CALLER: '+msg.decode('utf-8'))
                 if msg.decode('utf-8') == 'END CALL':
