@@ -97,6 +97,10 @@ def start_call(args):
                     continue
                 if read_list[0] == traffic_socket:
                     msg = traffic_socket.recv(255)
+                    if not msg.decode('utf-8'):
+                        print('CALL FAILED') 
+                        read_sockets.close()
+                        return
                     print('CALLER: '+msg.decode('utf-8'))
                     if msg.decode('utf-8') == 'END CALL':
                         traffic_socket.sendall('CALL ENDED'.encode('utf-8'))
@@ -201,6 +205,10 @@ def recv_call(args):
                 continue
             if read_list[0] == traffic_socket:
                 msg = traffic_socket.recv(255)
+                if not msg.decode('utf-8'):
+                        print('CALL FAILED') 
+                        read_sockets.close()
+                        return
                 print('CALLER: '+msg.decode('utf-8'))
                 if msg.decode('utf-8') == 'END CALL':
                     traffic_socket.sendall('CALL ENDED'.encode('utf-8'))
