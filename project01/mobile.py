@@ -41,80 +41,86 @@ def start_call(args):
         base_station_ip -- IP address detected through pilot function
         target_msn -- Mobile Station Number of phone we are calling
     """
-    
-    base_station_ip = args["base_station_ip"]
-    target_msn = args["target_msn"]
-    msn = args["name"]
+    try:
+        base_station_ip = args["base_station_ip"]
+        target_msn = args["target_msn"]
+        msn = args["name"]
 
-    # Set up socket to initiate call
-    traffic_socket = socket(AF_INET, SOCK_STREAM)
-    traffic_socket.connect((base_station_ip, TRAFFIC_PORT))
+        # Set up socket to initiate call
+        traffic_socket = socket(AF_INET, SOCK_STREAM)
+        traffic_socket.connect((base_station_ip, TRAFFIC_PORT))
 
-    setup_msg = msn+' SETUP '+target_msn
-    setup_msg_encoded = setup_msg.encode('utf-8')
+        setup_msg = msn+' SETUP '+target_msn
+        setup_msg_encoded = setup_msg.encode('utf-8')
 
-    # send setup message
-    traffic_socket.sendall(setup_msg_encoded)
+        # send setup message
+        traffic_socket.sendall(setup_msg_encoded)
 
-    # Wait for confirmation response from server
-    msg = traffic_socket.recv(255)
-    if not msg:
-        traffic_socket.close()
-        print('CONNECTION LOST')
-        return
-    
-    print(msg.decode('utf-8'))
-
-    # Wait for ringing message from receiving mobile
-    msg = traffic_socket.recv(255)
-    if not msg:
-        traffic_socket.close()
-        print('CONNECTION LOST')
-        return
-
-    print(msg.decode('utf-8'))
-
-    # Wait for connected message from mobile
-    msg = traffic_socket.recv(255)
-    if not msg:
-        traffic_socket.close()
-        print('CONNECTION LOST')
-        return
-
-    print(msg.decode('utf-8'))
-
-    ok_msg = 'OK'
-    traffic_socket.sendall(ok_msg.encode('utf-8'))
-
-    timeout = 2
-    print('You are connected!')
-    while True:
-        try:
-            sys.stdin.flush()
-            read_list, _, _ = select.select([traffic_socket, sys.stdin], [], [], timeout)
-            if not read_list:
-                continue
-            if read_list[0] == traffic_socket:
-                msg = traffic_socket.recv(255)
-                print(msg.decode('utf-8'))
-                if msg.decode('utf-8') == 'END CALL':
-                    traffic_socket.sendall('CALL ENDED'.encode('utf-8'))
-                    traffic_socket.close()
-            else:
-                msg = input().upper()
-                traffic_socket.sendall(msg.encode('utf-8'))
-                if msg == 'END CALL':
-                    # Wait for confirmation message
-                    call_ended_msg = traffic_socket.recv(255)
-                    if not call_ended_msg:
-                        print('CONNECTION LOST')
-                    print(call_ended_msg.decode('utf-8'))
-                    traffic_socket.close()
-                    return
-        except ValueError:
-            print('CALL ENDED')
+        # Wait for confirmation response from server
+        msg = traffic_socket.recv(255)
+        if not msg:
             traffic_socket.close()
+            print('CONNECTION LOST')
             return
+        
+        print(msg.decode('utf-8'))
+
+        # Wait for ringing message from receiving mobile
+        msg = traffic_socket.recv(255)
+        if not msg:
+            traffic_socket.close()
+            print('CONNECTION LOST')
+            return
+
+        print(msg.decode('utf-8'))
+
+        # Wait for connected message from mobile
+        msg = traffic_socket.recv(255)
+        if not msg:
+            traffic_socket.close()
+            print('CONNECTION LOST')
+            return
+
+        print(msg.decode('utf-8'))
+
+        ok_msg = 'OK'
+        traffic_socket.sendall(ok_msg.encode('utf-8'))
+
+        timeout = 2
+        print('You are connected!')
+        read_sockets = [traffic_socket, sys.stdin]
+        while True:
+            try:
+                sys.stdin.flush()
+                read_list, _, _ = select.select(read_sockets, [], [], timeout)
+                if not read_list:
+                    continue
+                if read_list[0] == traffic_socket:
+                    msg = traffic_socket.recv(255)
+                    print('CALLER: '+msg.decode('utf-8'))
+                    if msg.decode('utf-8') == 'END CALL':
+                        traffic_socket.sendall('CALL ENDED'.encode('utf-8'))
+                        print('CALL ENDED')
+                        read_sockets.remove(traffic_socket)
+                        traffic_socket.close()
+                        return
+                else:
+                    msg = input().upper()
+                    traffic_socket.sendall(msg.encode('utf-8'))
+                    if msg == 'END CALL':
+                        # Wait for confirmation message
+                        call_ended_msg = traffic_socket.recv(255)
+                        print(call_ended_msg.decode('utf-8'))
+                        read_sockets.remove(traffic_socket)
+                        traffic_socket.close()
+                        return
+            except ValueError:
+                print('Caught error')
+                traffic_socket.close()
+                return
+    except ConnectionRefusedError:
+        print('Signal Lost...')
+        return
 
 
 def page_channel(args):
@@ -186,31 +192,34 @@ def recv_call(args):
 
     timeout = 2
     print('You are connected!')
+    read_sockets = [traffic_socket, sys.stdin]
     while True:
         try:
             sys.stdin.flush()
-            read_list, _, _ = select.select([traffic_socket, sys.stdin], [], [], timeout)
+            read_list, _, _ = select.select(read_sockets, [], [], timeout)
             if not read_list:
                 continue
             if read_list[0] == traffic_socket:
                 msg = traffic_socket.recv(255)
-                print(msg.decode('utf-8'))
+                print('CALLER: '+msg.decode('utf-8'))
                 if msg.decode('utf-8') == 'END CALL':
                     traffic_socket.sendall('CALL ENDED'.encode('utf-8'))
+                    print('CALL ENDED')
+                    read_sockets.remove(traffic_socket)
                     traffic_socket.close()
+                    return
             else:
                 msg = input().upper()
                 traffic_socket.sendall(msg.encode('utf-8'))
                 if msg == 'END CALL':
                     # Wait for confirmation message from receiver
                     call_ended_msg = traffic_socket.recv(255)
-                    if not call_ended_msg:
-                        print('CALL ENDED')
                     print(call_ended_msg.decode('utf-8'))
+                    read_sockets.remove(traffic_socket)
                     traffic_socket.close()
                     return
         except ValueError:
-            print('CALL ENDED')
+            print('caught error')
             traffic_socket.close()
             return
 

@@ -107,16 +107,30 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, t
         # Start sending/receiving traffic from user
         timeout = 2
         call_end = False
+        read_socket = [mobile_socket]
         while True:
-            read_list, _, _ = select.select([mobile_socket], [], [], timeout)
+            read_list, _, _ = select.select(read_socket, [], [], timeout)
             if read_list:
                 msg = mobile_socket.recv(255)
                 msg_decoded = msg.decode('utf-8')
+                if not msg_decoded:
+                    mobile_socket.close()
+                    return
                 mobile_receiver_queue.put(msg)
                 print(msn+': '+msg_decoded)
                 if msg_decoded == 'END CALL':
-                    call_end = True
-                    break
+                    try:
+                        call_ended_msg = mobile_caller_queue.get(timeout=5)
+                        print(msn+': '+call_ended_msg.decode('utf-8'))
+                        mobile_socket.sendall(call_ended_msg)
+                        read_socket.remove(mobile_socket)
+                        mobile_socket.close()
+                        return
+                    except Empty:
+                        print('queue read timed out -- call setup')
+                        read_socket.remove(mobile_socket)
+                        mobile_socket.close()
+                        return
             try:
                 msg_from_receiver = mobile_caller_queue.get(timeout=2)
             except Empty:
@@ -125,26 +139,13 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, t
             mobile_socket.sendall(msg_from_receiver)
 
             if msg_from_receiver == 'END CALL':
-                break
-            
-        if call_end:
-            # Read message from receiver confirming call ended, send to mobile
-            try:
-                call_ended_msg = mobile_caller_queue.get(timeout=5)
-            except Empty:
-                call_error(mobile_socket, 'CALL ENDED')
+                call_ended_msg = mobile_socket.recv(255)
+                print(msn+': '+call_ended_msg.decode('utf-8'))
+                mobile_receiver_queue.put(call_ended_msg)
+                read_socket.remove(mobile_socket)
                 mobile_socket.close()
                 return
-            
-            print(msn+': ' +call_ended_msg.decode('utf-8'))
-            mobile_socket.sendall(call_ended_msg)
-        else:
-            call_ended_msg = mobile_socket.recv(255)
-            print(msn+': '+call_ended_msg.decode('utf-8'))
-            mobile_receiver_queue.put(call_ended_msg)
-    
-        # close connection
-        mobile_socket.close()
+
     except ConnectionResetError:
         print(msn+': CALL FAILED')
 
@@ -188,16 +189,30 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, 
 
         timeout = 2
         call_end = False
+        read_socket = [mobile_socket]
         while True:
-            read_list, _, _ = select.select([mobile_socket], [], [], timeout)
+            read_list, _, _ = select.select(read_socket, [], [], timeout)
             if read_list:
                 msg = mobile_socket.recv(255)
                 msg_decoded = msg.decode('utf-8')
+                if not msg_decoded:
+                    mobile_socket.close()
+                    return
                 mobile_caller_queue.put(msg)
                 print(msn+': '+msg_decoded)
                 if msg_decoded == 'END CALL':
-                    call_end = True
-                    break
+                    try:
+                        call_ended_msg = mobile_receiver_queue.get(timeout=5)
+                        print(msn+': '+call_ended_msg.decode('utf-8'))
+                        mobile_socket.sendall(call_ended_msg)
+                        read_socket.remove(mobile_socket)
+                        mobile_socket.close()
+                        return
+                    except Empty:
+                        print('queue read timed out -- call answer')
+                        read_socket.remove(mobile_socket)
+                        mobile_socket.close()
+                        return
             try:
                 msg_from_caller = mobile_receiver_queue.get(timeout=2)
             except Empty:
@@ -206,26 +221,13 @@ def call_answer(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, 
             mobile_socket.sendall(msg_from_caller)
 
             if msg_from_caller == 'END CALL':
-                break
-
-        if call_end:
-            # Read message from receiver confirming call ended, send to mobile
-            try:
-                call_ended_msg = mobile_receiver_queue.get(timeout=5)
-            except Empty:
-                call_error(mobile_socket, 'CALL ENDED')
+                call_ended_msg = mobile_socket.recv(255)
+                print(msn+': '+call_ended_msg.decode('utf-8'))
+                mobile_caller_queue.put(call_ended_msg)
+                read_socket.remove(mobile_socket)
                 mobile_socket.close()
                 return
 
-            print(msn+': '+call_ended_msg.decode('utf-8'))
-            mobile_socket.sendall(call_ended_msg)
-        else:
-            call_ended_msg = mobile_socket.recv(255)
-            print(msn+': '+call_ended_msg.decode('utf-8'))
-            mobile_caller_queue.put(call_ended_msg)
-
-        # Close connection
-        mobile_socket.close()
     except ConnectionResetError:
         print(msn+': CALL FAILED')
 
