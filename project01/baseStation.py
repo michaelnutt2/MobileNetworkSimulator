@@ -74,7 +74,7 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, t
 
         # Wait for receiver Ringing Response
         try:
-            ringing = mobile_caller_queue.get(timeout=5)
+            ringing = mobile_caller_queue.get(timeout=10)
         except Empty:
             print(msn+': No response from receiver, unreachable')
             call_error(mobile_socket, 'NUMBER UNREACHABLE'.encode('utf-8'))
