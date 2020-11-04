@@ -88,7 +88,7 @@ def call_setup(mobile_socket, mobile_caller_queue, mobile_receiver_queue, msn, t
 
         # Wait for Connected response
         try:
-            connected = mobile_caller_queue.get(timeout=5)
+            connected = mobile_caller_queue.get(timeout=10)
         except Empty:
             print(msn+': Call Failed')
             call_error(mobile_socket, 'CALL FAILED'.encode('utf-8'))
